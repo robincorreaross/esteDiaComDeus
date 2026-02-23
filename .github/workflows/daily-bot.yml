@@ -32,6 +32,8 @@ jobs:
           EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
           EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
           EVOLUTION_INSTANCE: ${{ secrets.EVOLUTION_INSTANCE }}
-          WHATSAPP_TARGETS: ${{ secrets.WHATSAPP_TARGETS }}
           TIMEZONE: America/Sao_Paulo
+          # Edite aqui para adicionar ou remover destinatarios (virgula ou ponto-e-virgula)
+          # Formato: numero com DDI (5511...) ou grupo (@g.us)
+          WHATSAPP_TARGETS: "5516991080895;5516993024235"
         run: npm run now
