@@ -1,0 +1,36 @@
+[23/02/2026 07:20:24] [32minfo[39m | Este Dia Com Deus - Bot WhatsApp Iniciado
+[23/02/2026 07:20:24] [32minfo[39m | Versao Node.js: v22.12.0
+[23/02/2026 07:20:24] [32minfo[39m | Modo: execucao imediata (--run-now)
+[23/02/2026 07:20:24] [32minfo[39m | ============================================================
+[23/02/2026 07:20:24] [32minfo[39m |   INICIANDO AUTOMACAO - Este Dia Com Deus
+[23/02/2026 07:20:24] [32minfo[39m |   Hora: 23/02/2026, 07:20:24
+[23/02/2026 07:20:24] [32minfo[39m | ============================================================
+[23/02/2026 07:20:24] [32minfo[39m | [1/4] Verificando conexao do WhatsApp...
+[23/02/2026 07:20:25] [32minfo[39m | Status da instancia WhatsApp: open
+[23/02/2026 07:20:25] [32minfo[39m | [1/4] WhatsApp conectado!
+[23/02/2026 07:20:25] [32minfo[39m | [2/4] Buscando video mais recente do canal...
+[23/02/2026 07:20:25] [32minfo[39m | Buscando channelId via pagina do canal: @EsteDiacomDeus
+[23/02/2026 07:20:25] [32minfo[39m | ChannelId encontrado: UCrWihNP4LHvHSU3UAy4cJaA
+[23/02/2026 07:20:25] [32minfo[39m | Dica: adicione YOUTUBE_CHANNEL_ID=UCrWihNP4LHvHSU3UAy4cJaA no .env para nao precisar buscar toda vez.
+[23/02/2026 07:20:25] [32minfo[39m | Buscando RSS feed: https://www.youtube.com/feeds/videos.xml?channel_id=UCrWihNP4LHvHSU3UAy4cJaA
+[23/02/2026 07:20:25] [32minfo[39m | Video encontrado: "#54 Simples Felicidade   | Este Dia Com Deus - Pr. Gilson Brito" (DQb-oU-vAHY)
+[23/02/2026 07:20:25] [32minfo[39m | Publicado em: 23/02/2026, 04:00:06
+[23/02/2026 07:20:25] [32minfo[39m | Extraindo transcricao do video: DQb-oU-vAHY
+[23/02/2026 07:20:26] [32minfo[39m | Transcricao em portugues encontrada.
+[23/02/2026 07:20:26] [32minfo[39m | Transcricao extraida: 0 caracteres
+[23/02/2026 07:20:26] [32minfo[39m | [2/4] Video: "#54 Simples Felicidade   | Este Dia Com Deus - Pr. Gilson Brito"
+[23/02/2026 07:20:26] [32minfo[39m | [3/4] Gerando resumo com Google Gemini...
+[23/02/2026 07:20:26] [32minfo[39m | Gerando resumo com Google Gemini...
+[23/02/2026 07:20:26] [31merror[39m | ============================================================
+[23/02/2026 07:20:26] [31merror[39m |   FALHA NA AUTOMACAO
+[23/02/2026 07:20:26] [31merror[39m |   Erro: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+[23/02/2026 07:20:26] [31merror[39m | ============================================================
+[23/02/2026 07:20:26] [31merror[39m | [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+    at handleResponseNotOk (C:\project_ross\esteDiaComDeus\node_modules\@google\generative-ai\dist\index.js:414:11)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async makeRequest (C:\project_ross\esteDiaComDeus\node_modules\@google\generative-ai\dist\index.js:387:9)
+    at async generateContent (C:\project_ross\esteDiaComDeus\node_modules\@google\generative-ai\dist\index.js:832:22)
+    at async generateSummary (C:\project_ross\esteDiaComDeus\src\summarizer.js:55:18)
+    at async runDailyAutomation (C:\project_ross\esteDiaComDeus\src\scheduler.js:39:21)
+    at async main (C:\project_ross\esteDiaComDeus\src\index.js:32:20)

@@ -1,0 +1,32 @@
+{
+  "name": "este-dia-com-deus-bot",
+  "version": "1.0.0",
+  "description": "Automação diária: resumo do vídeo Este Dia Com Deus enviado via WhatsApp",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "now": "node src/index.js --run-now",
+    "test:youtube": "node src/youtube.js",
+    "test:summarizer": "node src/summarizer.js",
+    "test:whatsapp": "node src/whatsapp.js"
+  },
+  "keywords": [
+    "youtube",
+    "whatsapp",
+    "automation",
+    "devotional"
+  ],
+  "author": "Este Dia Com Deus",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "fast-xml-parser": "^5.3.7",
+    "googleapis": "^144.0.0",
+    "node-cron": "^3.0.3",
+    "openai": "^6.22.0",
+    "winston": "^3.17.0",
+    "youtube-transcript": "^1.2.1"
+  }
+}

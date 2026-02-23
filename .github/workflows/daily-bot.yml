@@ -1,0 +1,37 @@
+name: Este Dia Com Deus - Bot Diário
+
+on:
+  schedule:
+    # 9h UTC = 6h horário de Brasília (BRT, UTC-3)
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Permite rodar manualmente pela aba Actions do GitHub
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Executar automação
+        env:
+          YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
+          YOUTUBE_CHANNEL_HANDLE: EsteDiacomDeus
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: gpt-4o-mini
+          EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
+          EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
+          EVOLUTION_INSTANCE: ${{ secrets.EVOLUTION_INSTANCE }}
+          WHATSAPP_TARGETS: ${{ secrets.WHATSAPP_TARGETS }}
+          TIMEZONE: America/Sao_Paulo
+        run: npm run now
