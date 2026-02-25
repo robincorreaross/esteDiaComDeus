@@ -35,5 +35,5 @@ jobs:
           TIMEZONE: America/Sao_Paulo
           # Edite aqui para adicionar ou remover destinatarios (virgula ou ponto-e-virgula)
           # Formato: numero com DDI (5511...) ou grupo (@g.us)
-          WHATSAPP_TARGETS: "5516991080895;5516993024235"
+          WHATSAPP_TARGETS: "5516991080895;5516993024235;120363043962750423@g.us;5516991080895-1519304287@g.us;120363228859519563@g.us"
         run: npm run now
