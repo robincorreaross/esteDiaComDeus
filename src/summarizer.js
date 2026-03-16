@@ -23,8 +23,8 @@ async function generateSummary(videoData) {
     ? `TRANSCRICAO DO VIDEO:\n${transcript}`
     : `DESCRICAO DO VIDEO:\n${description}`;
 
-  const prompt = `Voce e um assistente criativo especializado em conteudo cristao evangelico.
-Analise o seguinte video devocional e gere uma mensagem formatada para envio no WhatsApp.
+  const prompt = `Voce e um assistente especializado em conteudo cristao evangelico.
+Analise o seguinte video devocional e gere uma mensagem baseado no devocional do vídeo,formatada para envio no WhatsApp.
 
 TITULO DO VIDEO: ${title}
 LINK DO VIDEO: ${videoUrl}
@@ -34,12 +34,12 @@ ${content}
 Crie uma mensagem com a seguinte estrutura exata (use formatacao WhatsApp com * para negrito):
 
 1. Uma saudacao acolhedora e espiritualmente encorajadora
-2. O titulo do episodio em destaque
+2. Sempre O titulo do episodio em destaque
 3. Um resumo do ensinamento (4 a 6 paragrafos claros, relevantes e inspiradores)
-4. Um versiculo biblico chave mencionado no video (ou relacionado ao tema)
+4. Um versiculo biblico chave mencionado no video
 5. Uma reflexao/aplicacao pratica para o dia
 6. O link do video completo
-7. Uma despedida com bencao
+7. Uma despedida com benção
 
 REGRAS IMPORTANTES:
 - Use linguagem acolhedora, carinhosa e espiritualmente edificante
