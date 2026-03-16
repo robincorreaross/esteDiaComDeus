@@ -2,8 +2,8 @@ name: Este Dia Com Deus - Bot Diário
 
 on:
   schedule:
-    # 9h UTC = 6h horário de Brasília (BRT, UTC-3)
-    - cron: '0 9 * * *'
+    # 9h UTC = 5h horário de Brasília (BRT, UTC-3)
+    - cron: '0 8 * * *'
   workflow_dispatch: # Permite rodar manualmente pela aba Actions do GitHub
 
 jobs:
