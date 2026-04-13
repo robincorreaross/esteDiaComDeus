@@ -34,8 +34,8 @@ ${content}
 Crie uma mensagem com a seguinte estrutura exata (use formatacao WhatsApp com * para negrito):
 
 1. Um "Bom dia" caloroso com uma saudacao acolhedora e espiritualmente encorajadora.
-2. Sempre O titulo do episodio em destaque.
-3. Exatamente o versículo bíblico chave mencionado no video.
+2. Sempre o titulo do episodio em destaque.
+3. Cite exatamente o versículo bíblico chave mencionado no video completo.
 4. Um resumo do ensinamento (4 a 6 paragrafos claros, relevantes e inspiradores).
 5. Uma reflexao/aplicacao pratica para o dia.
 6. O link do video completo.
