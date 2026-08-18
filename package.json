@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "cd webapp && npm run dev",
+    "build": "cd webapp && npm install --legacy-peer-deps && npm run build",
     "now": "node src/index.js --run-now",
     "test:youtube": "node src/youtube.js",
     "test:summarizer": "node src/summarizer.js",
