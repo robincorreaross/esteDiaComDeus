@@ -9,7 +9,6 @@ async function main() {
   logger.info('Este Dia Com Deus - Bot WhatsApp Iniciado');
   logger.info(`Versao Node.js: ${process.version}`);
 
-  // Validacoes criticas de configuracao
   const requiredEnvs = [
     'OPENAI_API_KEY',
     'EVOLUTION_API_URL',
@@ -17,31 +16,25 @@ async function main() {
     'EVOLUTION_INSTANCE',
   ];
 
-  // Aceita WHATSAPP_TARGETS (novo) ou WHATSAPP_GROUP_ID (legado)
   const missing = requiredEnvs.filter((key) => !process.env[key]);
-  if (!process.env.WHATSAPP_TARGETS && !process.env.WHATSAPP_GROUP_ID) {
-    missing.push('WHATSAPP_TARGETS');
+  if (!process.env.WHATSAPP_TARGETS && !process.env.WHATSAPP_GROUP_ID && !process.env.SUPABASE_URL) {
+    missing.push('WHATSAPP_TARGETS or SUPABASE_URL');
   }
 
   if (missing.length > 0) {
     logger.error(`Variaveis de ambiente obrigatorias nao configuradas: ${missing.join(', ')}`);
-    logger.error('Copie o arquivo .env.example para .env e preencha todos os valores.');
     process.exit(1);
   }
 
   if (runNow) {
-    // Execucao imediata (modo de teste: npm run now)
     logger.info('Modo: execucao imediata (--run-now)');
-    const result = await runDailyAutomation();
-    // Aguarda o flush do winston antes de encerrar
+    const result = await runDailyAutomation('manual');
     await new Promise((resolve) => setTimeout(resolve, 500));
     process.exit(result.success ? 0 : 1);
   } else {
-    // Modo normal: inicia o agendador
     logger.info('Modo: agendador continuo (npm start)');
     startScheduler();
 
-    // Mantém o processo ativo
     process.on('SIGINT', () => {
       logger.info('Encerrando o bot... (SIGINT recebido)');
       process.exit(0);

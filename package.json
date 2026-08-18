@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "dev": "cd webapp && npm run dev",
     "now": "node src/index.js --run-now",
     "test:youtube": "node src/youtube.js",
     "test:summarizer": "node src/summarizer.js",

@@ -1,35 +1,47 @@
 require('dotenv').config();
 const OpenAI = require('openai');
+const axios = require('axios');
 const logger = require('./logger');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+function getOpenAIClient() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY || 'sk-dummy-build-key',
+  });
+}
 
 /**
- * Gera um resumo devocional formatado para WhatsApp usando GPT-4o mini
- * @param {object} videoData - { title, videoUrl, transcript, description }
- * @returns {string} - Mensagem formatada pronta para enviar no WhatsApp
+ * Busca a configuracao de prompt do Supabase
  */
-async function generateSummary(videoData) {
-  const { title, videoUrl, transcript, description } = videoData;
+async function getPromptTemplateFromDB() {
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://grpkjytyniohtqgbabkw.supabase.co';
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdycGtqeXR5bmlvaHRxZ2JhYmt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODgwODMsImV4cCI6MjA5NTY2NDA4M30.r_DY6pwgsacCu46mm0UVCsmAoLanYYwra4XfgWzh7nU';
 
-  logger.info('Gerando resumo com GPT-4o mini...');
+  try {
+    const response = await axios.get(`${supabaseUrl}/rest/v1/settings?id=eq.default&select=prompt_template,transcript_strict_mode`, {
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      timeout: 5000,
+    });
+    if (response.data && response.data.length > 0) {
+      return response.data[0];
+    }
+  } catch (err) {
+    logger.warn(`Nao foi possivel buscar prompt do Supabase. Usando fallback. (${err.message})`);
+  }
 
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  return null;
+}
 
-  // Conteudo disponivel para o modelo
-  const content = transcript
-    ? `TRANSCRICAO DO VIDEO:\n${transcript}`
-    : `DESCRICAO DO VIDEO:\n${description}`;
+const DEFAULT_PROMPT_TEMPLATE = `Voce e um assistente especializado em conteudo cristao evangelico.
+Analise o seguinte video devocional e gere uma mensagem baseado no devocional do vídeo, formatada para envio no WhatsApp.
 
-  const prompt = `Voce e um assistente especializado em conteudo cristao evangelico.
-Analise o seguinte video devocional e gere uma mensagem baseado no devocional do vídeo,formatada para envio no WhatsApp.
+TITULO DO VIDEO: {title}
+LINK DO VIDEO: {videoUrl}
 
-TITULO DO VIDEO: ${title}
-LINK DO VIDEO: ${videoUrl}
-
-${content}
+TRANSCRICAO DO VIDEO:
+{transcript}
 
 Crie uma mensagem com a seguinte estrutura exata (use formatacao WhatsApp com * para negrito):
 
@@ -52,6 +64,35 @@ REGRAS IMPORTANTES:
 
 Gere apenas a mensagem, sem comentarios adicionais.`;
 
+/**
+ * Gera um resumo devocional formatado para WhatsApp usando GPT-4o mini
+ */
+async function generateSummary(videoData, overridePromptTemplate) {
+  const { title, videoUrl, transcript } = videoData;
+
+  // TRAVA ANTI-ALUCINACAO: Se nao houver transcricao valida (>100 chars), INTERROMPE!
+  if (!transcript || transcript.trim().length < 100) {
+    const errorMsg = 'TRANSCRIPT_UNAVAILABLE: Transcrição do vídeo indisponível ou insuficiente (<100 caracteres). Interrompido para evitar alucinação da IA.';
+    logger.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  logger.info('Buscando template de prompt...');
+  let template = overridePromptTemplate;
+  if (!template) {
+    const dbSettings = await getPromptTemplateFromDB();
+    template = dbSettings?.prompt_template || DEFAULT_PROMPT_TEMPLATE;
+  }
+
+  const prompt = template
+    .replace(/{title}/g, title || '')
+    .replace(/{videoUrl}/g, videoUrl || '')
+    .replace(/{transcript}/g, transcript || '');
+
+  logger.info(`Gerando resumo com GPT-4o mini (${transcript.length} chars de transcricao)...`);
+
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const openai = getOpenAIClient();
   let lastError;
   const maxRetries = 3;
 
@@ -60,12 +101,12 @@ Gere apenas a mensagem, sem comentarios adicionais.`;
       const completion = await openai.chat.completions.create({
         model,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1024,
+        max_tokens: 1200,
         temperature: 0.7,
       });
 
       const text = completion.choices[0].message.content.trim();
-      logger.info(`Resumo gerado com sucesso: ${text.length} caracteres (modelo: ${model})`);
+      logger.info(`Resumo gerado com sucesso: ${text.length} caracteres`);
       return text;
 
     } catch (err) {
@@ -73,7 +114,7 @@ Gere apenas a mensagem, sem comentarios adicionais.`;
       const isRateLimit = err.status === 429 || err.message?.includes('rate limit') || err.message?.includes('quota');
 
       if (isRateLimit && attempt < maxRetries) {
-        const waitSecs = 30 * attempt;
+        const waitSecs = 20 * attempt;
         logger.warn(`OpenAI rate limit (tentativa ${attempt}/${maxRetries}). Aguardando ${waitSecs}s...`);
         await new Promise((resolve) => setTimeout(resolve, waitSecs * 1000));
       } else {
@@ -85,23 +126,4 @@ Gere apenas a mensagem, sem comentarios adicionais.`;
   throw lastError;
 }
 
-module.exports = { generateSummary };
-
-// Permite execucao direta para teste: node src/summarizer.js
-if (require.main === module) {
-  const testData = {
-    title: '#54 Simples Felicidade | Este Dia Com Deus - Pr. Gilson Brito',
-    videoUrl: 'https://www.youtube.com/watch?v=DQb-oU-vAHY',
-    transcript: null,
-    description:
-      'Este Dia Com Deus e uma serie de reflexoes espirituais diarias apresentadas pelo pastor Gilson Brito. Cada episodio oferece uma mensagem de fe, esperanca e amor para comecar o dia com Deus.',
-  };
-
-  generateSummary(testData)
-    .then((summary) => {
-      console.log('\n========== MENSAGEM GERADA ==========\n');
-      console.log(summary);
-      console.log('\n=====================================\n');
-    })
-    .catch((err) => logger.error('Erro ao gerar resumo:', err));
-}
+module.exports = { generateSummary, DEFAULT_PROMPT_TEMPLATE };

@@ -4,12 +4,10 @@ const logger = require('./logger');
 
 /**
  * Envia mensagem de texto para um destino via Evolution API.
- * Compativel com v1 e v2.
  */
 async function sendToTarget(message, targetId, baseUrl, apiKey, instance) {
   const url = `${baseUrl}/message/sendText/${instance}`;
 
-  // Tenta formato v2 primeiro, fallback para v1
   const payloads = [
     { number: targetId, text: message },
     { number: targetId, options: { delay: 1200, presence: 'composing' }, textMessage: { text: message } },
@@ -39,31 +37,52 @@ async function sendToTarget(message, targetId, baseUrl, apiKey, instance) {
 }
 
 /**
- * Envia a mensagem para TODOS os destinos configurados em WHATSAPP_TARGETS.
- * Suporta numeros individuais e grupos separados por virgula.
- *
- * Exemplo no .env:
- *   WHATSAPP_TARGETS=5511999998888,120363123456789@g.us,5516991080895
+ * Busca contatos ativos no Supabase DB
  */
-async function sendWhatsAppMessage(message) {
+async function getActiveContactsFromDB() {
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://grpkjytyniohtqgbabkw.supabase.co';
+  const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdycGtqeXR5bmlvaHRxZ2JhYmt3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwODgwODMsImV4cCI6MjA5NTY2NDA4M30.r_DY6pwgsacCu46mm0UVCsmAoLanYYwra4XfgWzh7nU';
+
+  try {
+    const response = await axios.get(`${supabaseUrl}/rest/v1/contacts?is_active=eq.true&select=target_id,name`, {
+      headers: {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      timeout: 5000,
+    });
+    if (response.data && response.data.length > 0) {
+      return response.data.map(c => c.target_id);
+    }
+  } catch (err) {
+    logger.warn(`Nao foi possivel buscar contatos do Supabase: ${err.message}. Usando .env.`);
+  }
+
+  const targetsRaw = process.env.WHATSAPP_TARGETS || process.env.WHATSAPP_GROUP_ID || '5516991080895';
+  return targetsRaw
+    .split(/[,;]/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+}
+
+/**
+ * Envia a mensagem para os destinos ativos
+ */
+async function sendWhatsAppMessage(message, targetsOverride) {
   const baseUrl = process.env.EVOLUTION_API_URL;
   const apiKey = process.env.EVOLUTION_API_KEY;
   const instance = process.env.EVOLUTION_INSTANCE;
 
-  // Suporte a WHATSAPP_TARGETS (novo) e WHATSAPP_GROUP_ID (legado)
-  const targetsRaw = process.env.WHATSAPP_TARGETS || process.env.WHATSAPP_GROUP_ID;
-
-  if (!baseUrl || !apiKey || !instance || !targetsRaw) {
+  if (!baseUrl || !apiKey || !instance) {
     throw new Error(
-      'Configuracoes da Evolution API incompletas. Verifique: EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE, WHATSAPP_TARGETS'
+      'Configuracoes da Evolution API incompletas (EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE)'
     );
   }
 
-  // Parseia a lista de destinos (aceita virgula ou ponto-e-virgula como separador)
-  const targets = targetsRaw
-    .split(/[,;]/)
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0);
+  let targets = targetsOverride;
+  if (!targets || targets.length === 0) {
+    targets = await getActiveContactsFromDB();
+  }
 
   logger.info(`Enviando para ${targets.length} destino(s): ${targets.join(', ')}`);
 
@@ -73,10 +92,8 @@ async function sendWhatsAppMessage(message) {
     const result = await sendToTarget(message, target, baseUrl, apiKey, instance);
     results.push(result);
 
-    // Pausa de 10s entre envios (quando ha mais de 1 destinatario)
     if (targets.length > 1 && targets.indexOf(target) < targets.length - 1) {
-      logger.info('Aguardando 10s antes do proximo envio...');
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
   }
 
@@ -84,12 +101,42 @@ async function sendWhatsAppMessage(message) {
   const fail = results.filter((r) => !r.success).length;
   logger.info(`Resultado do envio: ${ok} sucesso(s), ${fail} falha(s)`);
 
-  if (fail > 0) {
-    const failed = results.filter((r) => !r.success).map((r) => r.target);
-    logger.warn(`Destinos com falha: ${failed.join(', ')}`);
+  return results;
+}
+
+/**
+ * Envia um alerta urgente no WhatsApp do Administrador (5516991080895)
+ */
+async function sendAdminErrorAlert(errorMessage, videoData) {
+  const adminPhone = process.env.ADMIN_WHATSAPP_NUMBER || '5516991080895';
+  const baseUrl = process.env.EVOLUTION_API_URL;
+  const apiKey = process.env.EVOLUTION_API_KEY;
+  const instance = process.env.EVOLUTION_INSTANCE;
+
+  if (!baseUrl || !apiKey || !instance) {
+    logger.error('Nao foi possivel enviar alerta de erro no WhatsApp: Evolution API nao configurada.');
+    return;
   }
 
-  return results;
+  const title = videoData?.title || 'Vídeo Desconhecido';
+  const url = videoData?.videoUrl || '';
+  const timestamp = new Date().toLocaleString('pt-BR');
+
+  const alertMessage = `⚠️ *ALERTA DE ERRO - ESTE DIA COM DEUS* ⚠️\n\n` +
+    `Ocorreu um erro no processo de automação diária:\n` +
+    `📌 *Erro:* ${errorMessage}\n` +
+    `🎬 *Vídeo:* ${title}\n` +
+    `🔗 *Link:* ${url}\n` +
+    `⏰ *Data/Hora:* ${timestamp}\n\n` +
+    `🛑 *Ação Tomada:* O envio da mensagem foi bloqueado para evitar alucinações de conteúdo pela IA.`;
+
+  logger.info(`🚨 Enviando alerta de erro no WhatsApp para o admin (${adminPhone})...`);
+  try {
+    await sendToTarget(alertMessage, adminPhone, baseUrl, apiKey, instance);
+    logger.info('🚨 Alerta de erro enviado com sucesso ao admin!');
+  } catch (err) {
+    logger.error(`Falha ao enviar alerta de erro no WhatsApp: ${err.message}`);
+  }
 }
 
 /**
@@ -100,33 +147,27 @@ async function checkInstanceStatus() {
   const apiKey = process.env.EVOLUTION_API_KEY;
   const instance = process.env.EVOLUTION_INSTANCE;
 
-  const url = `${baseUrl}/instance/connectionState/${instance}`;
-  const response = await axios.get(url, {
-    headers: { apikey: apiKey },
-    timeout: 10000,
-  });
+  if (!baseUrl || !apiKey || !instance) return false;
 
-  const state = response.data?.instance?.state || response.data?.state;
-  logger.info(`Status da instancia WhatsApp: ${state}`);
-  return state === 'open';
+  try {
+    const url = `${baseUrl}/instance/connectionState/${instance}`;
+    const response = await axios.get(url, {
+      headers: { apikey: apiKey },
+      timeout: 10000,
+    });
+
+    const state = response.data?.instance?.state || response.data?.state;
+    logger.info(`Status da instancia WhatsApp: ${state}`);
+    return state === 'open';
+  } catch (err) {
+    logger.warn(`Erro ao checar status da instancia: ${err.message}`);
+    return false;
+  }
 }
 
-module.exports = { sendWhatsAppMessage, checkInstanceStatus };
-
-// Permite execucao direta para teste: node src/whatsapp.js
-if (require.main === module) {
-  const testMessage = '*Teste - Este Dia Com Deus Bot*\n\nSe voce recebeu esta mensagem, a integracao com a Evolution API esta funcionando! \u{1F64F}';
-
-  checkInstanceStatus()
-    .then((connected) => {
-      if (!connected) {
-        logger.warn('WhatsApp nao esta conectado!');
-        return;
-      }
-      return sendWhatsAppMessage(testMessage);
-    })
-    .then((results) => {
-      if (results) logger.info(`Teste concluido! ${results.filter(r=>r.success).length}/${results.length} enviados.`);
-    })
-    .catch((err) => logger.error('Erro no teste do WhatsApp:', err));
-}
+module.exports = {
+  sendWhatsAppMessage,
+  sendAdminErrorAlert,
+  checkInstanceStatus,
+  getActiveContactsFromDB,
+};
