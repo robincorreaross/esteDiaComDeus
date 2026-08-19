@@ -2,15 +2,13 @@ name: Este Dia Com Deus - Bot Diário
 
 on:
   schedule:
-    # 9h UTC = 5h horário de Brasília (BRT, UTC-3)
-    - cron: '9 7 * * *' # 08:07 UTC = 05:07 Horário de Brasília (BRT, UTC-3)
-  workflow_dispatch: # Permite rodar manualmente pela aba Actions do GitHub
+    # 09:00 UTC = 06:00 horário de Brasília (BRT, UTC-3)
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Permite disparar manualmente a qualquer momento pelo GitHub
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
     steps:
       - name: Checkout do repositório
@@ -19,13 +17,21 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '20'
           cache: 'npm'
 
-      - name: Instalar dependências
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências Python
+        run: pip install youtube-transcript-api
+
+      - name: Instalar dependências Node.js
         run: npm ci
 
-      - name: Executar automação
+      - name: Executar automação matinal
         env:
           YOUTUBE_CHANNEL_ID: ${{ secrets.YOUTUBE_CHANNEL_ID }}
           YOUTUBE_CHANNEL_HANDLE: EsteDiacomDeus
@@ -34,8 +40,9 @@ jobs:
           EVOLUTION_API_URL: ${{ secrets.EVOLUTION_API_URL }}
           EVOLUTION_API_KEY: ${{ secrets.EVOLUTION_API_KEY }}
           EVOLUTION_INSTANCE: ${{ secrets.EVOLUTION_INSTANCE }}
+          ADMIN_WHATSAPP_NUMBER: ${{ secrets.ADMIN_WHATSAPP_NUMBER }}
+          WHATSAPP_TARGETS: ${{ secrets.WHATSAPP_TARGETS }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           TIMEZONE: America/Sao_Paulo
-          # Edite aqui para adicionar ou remover destinatarios (virgula ou ponto-e-virgula)
-          # Formato: numero com DDI (5511...) ou grupo (@g.us)
-          WHATSAPP_TARGETS: "5516991080895;5516993024235;120363043962750423@g.us;5516991080895-1519304287@g.us"
         run: npm run now
