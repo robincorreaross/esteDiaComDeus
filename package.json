@@ -21,7 +21,7 @@
   "author": "Este Dia Com Deus",
   "license": "MIT",
   "dependencies": {
-    "@cloudflare/next-on-pages": "1.12.1",
+    "@cloudflare/next-on-pages": "1.13.7",
     "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.48.1",
     "axios": "^1.7.9",
