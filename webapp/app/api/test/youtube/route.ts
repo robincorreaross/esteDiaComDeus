@@ -6,37 +6,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const handle = 'EsteDiacomDeus';
+    const channelId = 'UCrWihNP4LHvHSU3UAy4cJaA';
 
-    // 1. Obter channelId da página do canal
-    const pageRes = await fetch(`https://www.youtube.com/@${handle}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-        'Accept-Language': 'pt-BR,pt;q=0.9',
-      },
-    });
-    const html = await pageRes.text();
-
-    const patterns = [
-      /"externalId":"(UC[a-zA-Z0-9_-]{22})"/,
-      /<link rel="canonical" href="https:\/\/www\.youtube\.com\/channel\/(UC[a-zA-Z0-9_-]{22})"/,
-      /"channelId":"(UC[a-zA-Z0-9_-]{22})"/,
-    ];
-
-    let channelId = '';
-    for (const pattern of patterns) {
-      const match = html.match(pattern);
-      if (match) {
-        channelId = match[1];
-        break;
-      }
-    }
-
-    if (!channelId) {
-      channelId = 'UCrWihNP4LHvHSU3UAy4cJaA'; // Fallback conhecido do canal
-    }
-
-    // 2. Obter último vídeo via RSS Feed
+    // 1. Obter último vídeo via RSS Feed (funciona de qualquer IP)
     const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
     const feedRes = await fetch(feedUrl, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)', Accept: 'application/xml, text/xml, */*' },
@@ -54,8 +26,26 @@ export async function GET() {
     const title = titleMatch ? titleMatch[1] : 'Sem título';
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-    // 3. Extrair transcrição completa usando algoritmo Innertube
-    const transcript = await getYouTubeTranscript(videoId);
+    // 2. Tentar extrair transcrição via Innertube (pode falhar em IPs de datacenter)
+    let transcript = await getYouTubeTranscript(videoId);
+    let transcriptSource = 'innertube';
+
+    // 3. Fallback: buscar transcrição do Supabase (caso já tenha sido processada pelo bot local)
+    if (!transcript || transcript.length < 100) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://grpkjytyniohtqgbabkw.supabase.co';
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+      try {
+        const logRes = await fetch(
+          `${supabaseUrl}/rest/v1/execution_logs?video_url=eq.${encodeURIComponent(videoUrl)}&select=summary_preview&order=created_at.desc&limit=1`,
+          { headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` } }
+        );
+        const logs = await logRes.json();
+        if (logs?.[0]?.summary_preview) {
+          transcriptSource = 'supabase_cache';
+        }
+      } catch { /* ignore */ }
+    }
 
     return NextResponse.json({
       success: true,
@@ -63,7 +53,11 @@ export async function GET() {
       videoUrl,
       videoId,
       transcriptLength: transcript ? transcript.length : 0,
+      transcriptSource,
       transcript: transcript || null,
+      note: (!transcript || transcript.length < 100)
+        ? 'A transcrição pode não estar disponível quando acessada de servidores em nuvem (Cloudflare). O bot local (Python) extrai com sucesso via youtube-transcript-api.'
+        : undefined,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
