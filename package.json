@@ -21,15 +21,33 @@
   "author": "Este Dia Com Deus",
   "license": "MIT",
   "dependencies": {
+    "@cloudflare/next-on-pages": "^1.13.8",
     "@google/generative-ai": "^0.21.0",
+    "@supabase/supabase-js": "^2.48.1",
     "axios": "^1.7.9",
+    "clsx": "^2.1.1",
     "dotenv": "^16.4.7",
     "express": "^5.2.1",
     "fast-xml-parser": "^5.3.7",
     "googleapis": "^144.0.0",
+    "lucide-react": "^0.475.0",
+    "next": "^14.3.0",
     "node-cron": "^3.0.3",
     "openai": "^6.22.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^3.0.1",
     "winston": "^3.17.0",
     "youtube-transcript": "^1.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.19",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3",
+    "wrangler": "^3.109.2"
   }
 }
