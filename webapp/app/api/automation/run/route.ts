@@ -1,81 +1,58 @@
 import { NextResponse } from 'next/server';
+import { getYouTubeTranscript } from '@/lib/youtube-transcript';
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 export async function POST() {
   try {
-    // Step 1: Fetch latest video (reuse youtube logic via internal edge-compatible code)
+    // Step 1: Obter último vídeo
     const handle = 'EsteDiacomDeus';
-    const pageRes = await fetch(`https://www.youtube.com/@${handle}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept-Language': 'pt-BR,pt;q=0.9' },
-    });
-    const html = await pageRes.text();
+    let channelId = 'UCrWihNP4LHvHSU3UAy4cJaA';
 
-    const channelPatterns = [
-      /"externalId":"(UC[a-zA-Z0-9_-]{22})"/,
-      /"channelId":"(UC[a-zA-Z0-9_-]{22})"/,
-    ];
-    let channelId = '';
-    for (const p of channelPatterns) {
-      const m = html.match(p);
-      if (m) { channelId = m[1]; break; }
-    }
-    if (!channelId) {
-      return NextResponse.json({ success: false, error: 'channelId não encontrado' }, { status: 500 });
-    }
+    try {
+      const pageRes = await fetch(`https://www.youtube.com/@${handle}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept-Language': 'pt-BR,pt;q=0.9' },
+      });
+      const html = await pageRes.text();
+      const m = html.match(/"externalId":"(UC[a-zA-Z0-9_-]{22})"/);
+      if (m) channelId = m[1];
+    } catch { /* use fallback */ }
 
     const feedRes = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`);
     const feedXml = await feedRes.text();
     const videoIdMatch = feedXml.match(/<yt:videoId>([^<]+)<\/yt:videoId>/);
     const titleMatch = feedXml.match(/<entry>[\s\S]*?<title>([^<]+)<\/title>/);
+
     if (!videoIdMatch) {
-      return NextResponse.json({ success: false, error: 'Nenhum vídeo encontrado' }, { status: 500 });
+      return NextResponse.json({ success: false, error: 'Nenhum vídeo encontrado no canal' }, { status: 500 });
     }
+
     const videoId = videoIdMatch[1];
-    const title = titleMatch ? titleMatch[1] : '';
+    const title = titleMatch ? titleMatch[1] : 'Vídeo Devocional';
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
-    // Step 2: Get transcript
-    let transcript = '';
-    try {
-      const watchRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36', 'Accept-Language': 'pt-BR,pt;q=0.9' },
-      });
-      const watchHtml = await watchRes.text();
-      const captionMatch = watchHtml.match(/"captionTracks":\[.*?"baseUrl":"([^"]+)"/);
-      if (captionMatch) {
-        const captionUrl = captionMatch[1].replace(/\\u0026/g, '&');
-        const captionRes = await fetch(captionUrl);
-        const captionXml = await captionRes.text();
-        const textSegments = captionXml.match(/<text[^>]*>([^<]*)<\/text>/g);
-        if (textSegments) {
-          transcript = textSegments
-            .map(seg => { const m = seg.match(/>([^<]*)</); return m ? m[1] : ''; })
-            .join(' ')
-            .replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&quot;/g, '"')
-            .trim();
-        }
-      }
-    } catch { /* transcript not available */ }
+    // Step 2: Extrair transcrição via Innertube
+    const transcript = await getYouTubeTranscript(videoId);
 
-    if (transcript.length < 100) {
+    if (!transcript || transcript.length < 100) {
       return NextResponse.json({
         success: false,
         step: 'transcript',
-        error: 'Transcrição indisponível ou muito curta. Automação bloqueada para evitar alucinação.',
+        error: 'Transcrição indisponível ou muito curta (<100 caracteres). Automação bloqueada para evitar alucinação da IA.',
       }, { status: 400 });
     }
 
-    // Step 3: Generate summary via OpenAI
+    // Step 3: Gerar resumo via OpenAI
     const openaiKey = process.env.OPENAI_API_KEY;
     if (!openaiKey) {
       return NextResponse.json({ success: false, error: 'OPENAI_API_KEY não configurada' }, { status: 500 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://grpkjytyniohtqgbabkw.supabase.co';
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
     let promptTemplate = '';
+
     try {
       const sRes = await fetch(`${supabaseUrl}/rest/v1/settings?id=eq.default&select=prompt_template`, {
         headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
@@ -107,15 +84,15 @@ export async function POST() {
     const completion = await openaiRes.json();
     const summary = completion.choices?.[0]?.message?.content?.trim();
 
-    // Step 4: Send via WhatsApp
+    // Step 4: Envio via WhatsApp
     const baseUrl = process.env.EVOLUTION_API_URL;
     const apiKeyEvo = process.env.EVOLUTION_API_KEY;
     const instanceEvo = process.env.EVOLUTION_INSTANCE;
+
     if (!baseUrl || !apiKeyEvo || !instanceEvo) {
       return NextResponse.json({ success: false, step: 'whatsapp', error: 'Evolution API não configurada' }, { status: 500 });
     }
 
-    // Get active contacts
     let targets: string[] = [];
     try {
       const cRes = await fetch(`${supabaseUrl}/rest/v1/contacts?is_active=eq.true&select=target_id`, {
@@ -140,7 +117,7 @@ export async function POST() {
       }
     }
 
-    // Log execution
+    // Registrar log
     try {
       await fetch(`${supabaseUrl}/rest/v1/execution_logs`, {
         method: 'POST',
@@ -154,7 +131,7 @@ export async function POST() {
           targets_count: targets.length,
         }),
       });
-    } catch { /* log failed silently */ }
+    } catch { /* ignore */ }
 
     return NextResponse.json({ success: true, title, videoUrl, transcriptLength: transcript.length, summary, whatsappResults: results });
   } catch (err: any) {
