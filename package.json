@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "cd webapp && npm run dev",
-    "build": "cd webapp && npm install --legacy-peer-deps && npm run build",
+    "build": "cd webapp && npm run build",
     "now": "node src/index.js --run-now",
     "test:youtube": "node src/youtube.js",
     "test:summarizer": "node src/summarizer.js",
@@ -21,7 +21,7 @@
   "author": "Este Dia Com Deus",
   "license": "MIT",
   "dependencies": {
-    "@cloudflare/next-on-pages": "^1.13.8",
+    "@cloudflare/next-on-pages": "1.12.1",
     "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.48.1",
     "axios": "^1.7.9",
@@ -31,7 +31,7 @@
     "fast-xml-parser": "^5.3.7",
     "googleapis": "^144.0.0",
     "lucide-react": "^0.475.0",
-    "next": "^14.3.0",
+    "next": "14.2.24",
     "node-cron": "^3.0.3",
     "openai": "^6.22.0",
     "react": "^18.3.1",
