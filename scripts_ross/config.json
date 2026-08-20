@@ -1,0 +1,18 @@
+{
+  "prompt_template": "Voce e um assistente especializado em conteudo cristao evangelico.\nAnalise o seguinte video devocional e gere uma mensagem baseado no devocional do vídeo, formatada para envio no WhatsApp.\n\nTITULO DO VIDEO: {title}\nLINK DO VIDEO: {videoUrl}\n\nTRANSCRICAO DO VIDEO:\n{transcript}\n\nCrie uma mensagem com a seguinte estrutura exata (use formatacao WhatsApp com * para negrito):\n\n1. Um \"Bom dia\" caloroso com uma saudacao acolhedora e espiritualmente encorajadora.\n2. Sempre o titulo do episodio em destaque.\n3. Cite exatamente a passagem bíblica chave completa mencionada no video.\n4. Um resumo do ensinamento (4 a 6 paragrafos claros, relevantes e inspiradores).\n5. Uma reflexao/aplicacao pratica para o dia.\n6. O link do video completo.\n7. Uma despedida com benção.\n\nREGRAS IMPORTANTES:\n- Use linguagem acolhedora, carinhosa e espiritualmente edificante\n- Use emojis relevantes para tornar a mensagem mais expressiva (ex: biblia, oracao, coracao)\n- Use *negrito* para destacar pontos importantes (formato WhatsApp)\n- Mantenha o tom do Pr. Gilson Brito: ensinamento pratico e relevante para a vida crista\n- A mensagem deve ter entre 300 e 500 palavras\n- Escreva tudo em Portugues do Brasil\n- NAO inclua markdown como ## ou ** - apenas * para negrito style WhatsApp\n\nGere apenas a mensagem, sem comentarios adicionais.",
+  "contacts": [
+    {"target_id": "5516993024235", "name": "Érica (Princesa)", "type": "individual", "is_active": true},
+    {"target_id": "5516991080895-1519304287@g.us", "name": "Minha Família", "type": "group", "is_active": true},
+    {"target_id": "120363043962750423@g.us", "name": "Família Érica", "type": "group", "is_active": true},
+    {"target_id": "5516991080895", "name": "Robinson / Admin", "type": "individual", "is_active": true}
+  ],
+  "schedule": {
+    "cron": "0 6 * * *",
+    "timezone": "America/Sao_Paulo"
+  },
+  "admin_phone": "5516991080895",
+  "strict_mode": true,
+  "openai_model": "gpt-4o-mini",
+  "youtube_channel_id": "UCrWihNP4LHvHSU3UAy4cJaA",
+  "execution_logs": []
+}

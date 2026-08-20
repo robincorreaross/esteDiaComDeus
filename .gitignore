@@ -12,4 +12,4 @@ webapp/out/
 webapp/node_modules/
 webapp/.env.local
 
-scripts_ross/
+# scripts_ross/
